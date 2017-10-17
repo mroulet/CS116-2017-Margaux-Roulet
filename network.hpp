@@ -12,7 +12,8 @@ public:
 	Network(double networkStopTime, std::list<Neuron*> neurons);
 	~Network();
 	
-	void update(double Iext);
+	void update();
+	void connect();
 
 private:
 	double networkStartTime_;

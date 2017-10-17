@@ -17,23 +17,24 @@ int main()
 	cout << "Entrez la durée de la simulation:" << endl;
 	cin >> stopTime;
 	
-	Neuron neuron1(n);
+	Neuron neuron1(n, Iext);
 	Neuron neuron2(n);
 
 	list<Neuron*> neurons = { &neuron1, &neuron2};
 
 	Network network(stopTime, neurons);
 	
-	network.update(Iext);
+	network.update();
 	
 	unsigned int compteur(1);
+	unsigned int k(0);
 	for (auto neuron : neurons) {
 		
 		//TEST1 : stockage du potentiel membranaire 
 		
 		//création et ouverture d'un file
 		string fileName;
-		cout << "Name the file in which you want to record the potential of neuron: " << compteur << " "
+		cout << "Name the file in which you want to record the potential of neuron " << compteur << ": "
 			<< flush;
 		cin >> ws;
 		getline(cin, fileName);
@@ -46,7 +47,8 @@ int main()
 		
 			} else {
 				for (auto potential : neuron->getPotentials()) {
-					file << potential << endl;
+					file << k*dt << " " << potential << endl;
+					++k;
 				}
 			}
 		
@@ -62,6 +64,7 @@ int main()
 		cout << endl;
 		
 		++compteur;
+		k = 0;
 	}
 			
 	return 0;
