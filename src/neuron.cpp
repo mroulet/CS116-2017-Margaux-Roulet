@@ -18,9 +18,9 @@ Neuron::Neuron(double stopTime, double iext, double potential, unsigned int nbSp
 	//notre buffer doit avoir un taille initiale avec pour valeur 0 = nb spike receive
 	unsigned int t = static_cast<unsigned long>(floor(Delay/dt));
 	
-	//la taille du buffer initial est 13 (soit 14 cases).
+	//la taille du buffer initial est 14 (soit 15 cases).
 	//de ce fait, il y aura un délai de 15 cases pour qu'on spike s'y inscrive, soit 1.5 ms
-	for (unsigned int i(0); i <= t-2; ++i) {
+	for (unsigned int i(0); i <= t-1; ++i) {
 		buffer_.push_back(0);
 	}
 }	
@@ -151,6 +151,7 @@ void Neuron::update()
 				
 				//le neuron spike
 				hasSpike_ = true;
+				++nbSpikes_;
 			}
 				
 			//mise à jour de l'état du neurone : état réfractionnaire

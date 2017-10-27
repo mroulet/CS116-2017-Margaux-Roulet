@@ -18,30 +18,22 @@ TEST (NeuronTest2, SpikeArrivalTime) {
 	
 	std::list<Neuron*> neurons = { &neuron1, &neuron2};
 	
-	double stopTime(1);
-	Network network(stopTime, neurons);
-	unsigned int time(1869);
-	unsigned int t = static_cast<unsigned long>(floor(Delay/dt));
+	double stopTime(0.0);
+	double time(92.4);
+	//unsigned int t = static_cast<unsigned long>(ceil(Delay/dt));
+	stopTime = time + Delay;
 	
-	//update du network jusqu'à ce que le premier neurone spike
-	for (unsigned int i(0); i<time+t; ++i) {
-		neuron1.update();
-		if (neuron1.hasSpike()) {
-			neuron2.setSpikesReceived(1);
-			neuron2.fillBuffer();
-		}
-		neuron2.update();
-	}
+	Network network(stopTime, neurons);
+	
+	network.update();
 	
 	//just before neuron2 spike
-	EXPECT_EQ(1, neuron2.getNbSpikes());
+	EXPECT_EQ(1, neuron1.getNbSpikes());
+	EXPECT_EQ(0.0, neuron2.getPotential());
 	neuron2.update();
-	EXPECT_EQ(0, neuron2.getPotential());
-	EXPECT_EQ(1, neuron2.getNbSpikes());
-			
-
-
+	EXPECT_EQ(0, neuron2.getNbSpikes());
 	EXPECT_EQ(0.1, neuron2.getPotential());
+
 }
 	
 int main(int argc, char **argv) {

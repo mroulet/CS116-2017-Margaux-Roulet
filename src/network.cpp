@@ -12,6 +12,13 @@ Network::Network(double networkStopTime, list<Neuron*> neurons)
 Network::~Network()
 {}
 //======================================================================
+//setter
+void Network::setNetworkStopTime(double t)
+{
+	networkStopTime_ = t;
+}
+
+//======================================================================
 //méthode connect
 void Network::connect()
 {
@@ -29,7 +36,6 @@ void Network::connect()
 void Network::update()
 {
 	while(dt*clock_ < networkStopTime_)	{
-		
 		for (auto neuron : neurons_) {
 			neuron->update();
 			//si le neuron spike
