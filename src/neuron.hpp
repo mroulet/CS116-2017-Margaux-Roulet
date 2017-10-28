@@ -7,82 +7,293 @@
 #include <list>
 #include <math.h>
 
-//CONSTANTES (à voir pour la suite créer un fichier res)
-const double Threshold = 20.0; //limite max du potentiel en mV
-const double PotentialReset = 0.0; //en mV
-const double dt = 0.1; //pas de temps en ms
-//unsigned int h = 1; //steptime (sera converti en ms)
-const double Resistance = 20.0; //resistance membranaire Ohm
-const double Capacity = 1.0; //Capacité Farrad
-const double tau = Resistance * Capacity; // tau = 20.0 ms
-const double tauRp = 2.0; //temps de réfraction du potentiel en ms
-const double Amplitude(0.1); // Constante J d'un spike reçu
-const double Delay(1.5); // transmission delay (en ms)
+///Constants
+const double Threshold = 20.0; 					//!< Maximum potential limit [mV]
+const double PotentialReset = 0.0; 				//!< Potential reset  [mV]
+const double dt = 0.1; 							//!< Time variation [ms]
+const unsigned int h = 1; 						//!< Steptime (will be converted en ms)
+const double Resistance = 20.0; 				//!< Membrane Resistance [Ohm]
+const double Capacity = 1.0; 					//!< Capacity [Farrad]
+const double tau = Resistance * Capacity; 		//!< Tau excitatory
+const double tauRp = 2.0; 						//!< Refractory time period [ms]
+const double Amplitude = 0.1; 					//!< Spike Amplitude received from excitatory neurons
+const double Delay = 1.5; 						//!< Transmission delay [ms]
+const double g = 5.0;							//!< Relative strength of inhibitory synapses
+const double ConnectionPercent = 0.1;			//!< Connections pourcentage in the whole network
+const double Vext_Vthr = 2.0;					//!< the external frequency expressed int units of external frequency to reach threshold with no feedback
 
 
+/*! 
+ * @class Neuron
+ * 
+ * @brief Managing the neuron simulation.
+ * 
+ * Temporal evolution of the neuron: its potential, state and number of spikes.
+ * Each steptime the membrane potential is updated and the spike condition checked.
+ * Each neuron receives activity (spikes) from its local network (excitatory and inhibitory)
+ * and from the rest of the brain (only excitatory).
+ */
 class Neuron {
 	
 public:
-	//constructeur/destructeur
-	Neuron(double stopTime, double iext = 0.0, double potential = 0.0, unsigned int nbSpikes = 0); //TEST 1NEURON
+	/**
+     * @brief Constructor
+     *
+     * @param stopTime of the simuation of the neuron
+     * @param iext is the external current
+     * @param membran potential
+     * 
+     * @note Initialisation of the time buffer necessary for the right implemtation of the transmission delay
+     */
+	Neuron(double stopTime, double iext = 0.0, double potential = 0.0);
+	
+	/**
+	 * @brief Destructor
+	 */
 	~Neuron();
 	
-	//getter
+	/**
+	 * @brief Get the potential.
+	 * 
+	 * @return current value of membrane potential.
+	 */
 	double getPotential() const;
+	
+	/**
+	 * @brief Get the number of spikes.
+	 * 
+	 * @return current value of number of spike that occured.
+	 */
 	unsigned int getNbSpikes() const;
+	
+	/**
+	 * @brief Get spikes time arrivals.
+	 * 
+	 * @return current times when spikes occured, stored in a vector.
+	 */
 	std::vector<double> getSpikesTimes() const;
+	
+	/**
+	 * @brief Get the refractory time.
+	 * 
+	 * @return current value of refractory time.
+	 */
 	double getRefractoryTime() const;
-	std::list<Neuron*> getSynapses() const;
-	std::vector<double> getPotentials() const;	
+	
+	/**
+	 * @brief Get synapses.
+	 * 
+	 * @return current connections of this neuron with all other neurons from network connected with it.
+	 */
+	std::vector<Neuron*> getSynapses() const;
+	
+	/**
+	 * @brief Get potentials.
+	 * 
+	 * @return current values of membrane potential for each dt.
+	 */
+	std::vector<double> getPotentials() const;
+	
+	/**
+	 * @brief Get the potential state.
+	 * 
+	 * @return one neuron has a spike if its membrane potential is greater than threshold.
+	 */	
 	bool hasSpike() const;
+	
+	/**
+	 * @brief Get the type of the neuron
+	 * 
+	 * @return is inhibiter or is excitatory
+	 */
+	bool isInhibiter() const;
+	
+	/**
+	 * @brief Get spikes received.
+	 * 
+	 * @return current numbers of spike received from connected neurons.
+	 */
 	unsigned int getSpikesReceived() const;
 	
-	//setter
+	/**
+	 * @brief Set potential.
+	 * 
+	 * Set current value of membrane potential.
+	 */
 	void setPotential(double potential);
+	
+	/**
+	 * @brief Set number of spikes.
+	 * 
+	 * Set current value of number of spikes that occured.
+	 */
 	void setNbSpikes(unsigned int spikes);
+	
+	/**
+	 * @brief Set the refractory state.
+	 * 
+	 * Set the refractory state of the neuron. 
+	 * One neuron is refractory during 2ms after passing the threshold.
+	 * When refractory, the membrane potential is set to 0.0.
+	 */
 	void setIsRefractory(bool state);
+	
+	/**
+	 * @brief Set the neuron type.
+	 * 
+	 * Whether the neuron is Excitatory or Inhibitory.
+	 */
+	void setIsInhibiter(bool type);
+	
+	/**
+	 * @brief Set refractory time.
+	 * 
+	 * Set current value of the refractory timer.
+	 */
 	void setRefractoryTime(double time);
+	
+	/**
+	 * @brief Set number of spikes recevied.
+	 * 
+	 * Set current value of number of spikes received from each neuron connected every dt.
+	 */
 	void setSpikesReceived(unsigned int spikes);
+	
+	/**
+	 * @brief Set the external current.
+	 * 
+	 * Set current value of the external current.
+	 */
 	void setIext(double iext);
-	void addSynapse(Neuron* n);
+	
+	/**
+	 * @brief Add synapse.
+	 * 
+	 * Create a connection between two neurons.
+	 */
+	void addSynapse(Neuron* const n);
+	
+
 	
 	//membrane differential equation
+	/**
+	 * @brief Calculate the membrane potential of the Neuron.
+	 * 
+	 * General solution of the Brunel linear differential equation.
+	 * Approximated for a constant current input Iext and a constant amplitude J.
+	 * 
+	 * @return the updated value of potential
+	 */
 	double membraneEq();
 	
-	//update
+	/**
+	 * @brief Run the simulation of one neuron.
+	 * 
+	 * This function is the main loop of the class Neuron
+	 * 
+	 * For a time simulation given:
+	 * if the potential is greater than the threshold we set the neuron refractory
+	 * if the neuron is refractory the potential is reset
+	 * otherwise solve the membrane equation to update the potential
+	 */
 	void update();
 	
-	//gestion du buffer
+	/**
+	 * @brief Record the spikes received by a connected neuron into the time buffer at time t + Delay.
+	 * 	
+	 * If the potential is greater than the threshold, 
+	 * a spike is signal at time t to the post synaptic neuron. 
+	 * The post synaptic neuron responds at t + Delay
+	 * 
+	 * @note The buffer size is equal to the number of steptime needed to accomplish the time transmission delay
+	 * Each step time of the simulation, to fill the buffer, we push_back
+	 */
 	void fillBuffer();
+	
+	/**
+	 * @brief Read the spikes received by a connected neuron at time t.
+	 * 
+	 * 
+	 * @note Each step time of the simulation, to empty the buffer, we read the first value of the buffer and erase it.
+	 */
 	void emptyBuffer();
 
 private:
+	/**
+	 * Start time of the neuron simulation [ms]
+	 */
+	double startTime_;	
 	
-	//intervalle de temps en steptime
-	double startTime_;
-	double stopTime_;
+	/**
+	 * End time of the neuron simulation [ms]
+	 */
+	double stopTime_;					
 	
-	//liste des neurones connectés
-	std::list<Neuron*> synapses_;
+	/**
+	 * List of connected neurons
+	 */
+	std::vector<Neuron*> synapses_; 		
 	
-	double refractoryTime_;
-	std::vector<double> spikesTimes_; 
+	/**
+	 * Refractory timer
+	 */
+	double refractoryTime_;			
 	
-	double iext_;
+	/**
+	 * Record of times when the neuron spiked
+	 */
+	std::vector<double> spikesTimes_;
+	
+	/**
+	 * External Current
+	 */
+	double iext_;	
+	
+	/**
+	 * Membrane potential
+	 */					
 	double potential_;
-	std::vector<double> potentials_; // ex1: créer un fichier contenant les potentiels
+	
+	/**
+	 * Record of membrane potential at each dt, to create a file
+	 */
+	std::vector<double> potentials_; 
+	
+	/**
+	 * Number of spikes
+	 */
 	unsigned int nbSpikes_;
-	unsigned int spikesReceived_; // spike recu des autre neurones connectés à chaque pas de temps dt
+	
+	/**
+	 * Number of spikes received from other connected neuron, updated each dt
+	 */
+	unsigned int spikesReceived_;
 	
 	
-	// lorsque la limite de potentiel est atteint alors:
+	/**
+	 * Neuron refractory state
+	 */
 	bool isRefractory_;
+	
+	/**
+	 * Neuron spike state
+	 */
 	bool hasSpike_;
 	
-	//tableau de spikes reçu à chaque pas de temps
+	
+	/**
+	 * Neuron type: return true if is inhibiter return false if is excitatory
+	 */
+	bool isInhibiter_;
+	
+	/** 
+	 * Time buffer containing each spike received at each dt
+	 */
 	std::vector<unsigned int> buffer_;
 	
-	//état d'avancement de la simulation
+	/**
+	 * Simulation time state
+	 */
 	double time_;
 	
 };

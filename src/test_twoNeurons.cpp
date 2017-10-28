@@ -17,17 +17,17 @@ int main()
 	cout << "Entrez la durée de la simulation:" << endl;
 	cin >> stopTime;
 	
-	Neuron neuron1(1, Iext);
-	Neuron neuron2(1);
+	Neuron neuron1(h, Iext);
+	Neuron neuron2(h);
 
-	list<Neuron*> neurons = { &neuron1, &neuron2};
+	vector<Neuron*> neurons = { &neuron1, &neuron2};
 
 	Network network(stopTime, neurons);
 	
 	network.update();
 	
 	unsigned int compteur(1);
-	unsigned int k(0);
+	unsigned int k(1);
 	for (auto neuron : neurons) {
 		
 		//TEST1 : stockage du potentiel membranaire 
