@@ -7,7 +7,12 @@ using namespace std;
 Network::Network(double networkStopTime, vector<Neuron*> neurons)
 : networkStopTime_(networkStopTime), neurons_(neurons)
 {
-	defineTypeNeuron();
+	nbSpikesTotal_ = 0;
+	
+	if(getNbNeurons() >= 50) {
+		
+		defineTypeNeuron();
+	}
 	connect();
 }
 //----------------------------------------------------------------------
@@ -15,6 +20,10 @@ Network::~Network()
 {}
 //======================================================================
 //getter/setter
+vector<Neuron*> Network::getNeurons() const
+{
+	return neurons_;
+}
 unsigned int Network::getNbNeurons() const
 {
 	return neurons_.size();
@@ -41,6 +50,10 @@ unsigned int Network::getNbExternalConnections()
 {
 	return getNbExcitatoryConnections();
 }
+std::vector<unsigned int> Network::getSpikesTable() const
+{
+	return spikesTable_;
+}
 //----------------------------------------------------------------------
 double Network::getFrequencyThr()
 {
@@ -48,8 +61,8 @@ double Network::getFrequencyThr()
 }
 //----------------------------------------------------------------------
 double Network::getExternalFrequency()
-{
-	return Vext_Vthr*getFrequencyThr();
+{	// cest/vtzhr * ce * vthr -> la multiplication des ce se fait dans poisson
+	return getNbExcitatoryConnections()*Eta*getFrequencyThr();
 }
 //----------------------------------------------------------------------
 void Network::setNetworkStopTime(double t)
@@ -61,44 +74,72 @@ void Network::setNetworkStopTime(double t)
 void Network::defineTypeNeuron()
 {
 	//note: la liste des neurones doit être multiple de 5 : Ni = 0.2 N , Ne = 0.8N
-	unsigned int n = 10;
+	unsigned int n = getNbNeurons()/5;
 	
+/*	for (auto neuron : neurons_) {
+		neuronsExcitatory_.push_back(neuron);
+	}
+	
+	// les N/5 premier neurones de la liste de neurones sont inhibiteurs
 	for (unsigned int i(0); i < n; ++i) {
 		neurons_[i]->setIsInhibiter(true);
+		neuronsExcitatory_.erase(neuronsExcitatory_.begin()+i);
+		neuronsInhibitory_.push_back(neurons_[i]);
 		++i;
+	}
+*/
+	for (unsigned int i(0); i < n; ++i) {
+			neurons_[i]->setIsInhibiter(true);
 	}
 }
 //======================================================================
 //méthode connect
 void Network::connect()
 {	
-	unsigned int k(1);
-	for (auto neuron : neurons_) {
-		
-		unsigned int i(0); // compteur des connections inhibitrices
-		unsigned int j(0); // compteur des connections excitatrices
-		
-		// Je parcours tous les neurones receveurs et 
-		// crée aléatoirement des connections inhibitrice et excitatrice
-		while (i < getNbInhibitoryConnections() or j < getNbExcitatoryConnections()) {
-			
-			unsigned int index(uniform());
-						
-			// Je crée Ci connections inhibitrice avec des neurones inhibiteurs
-			if (neurons_[index]->isInhibiter() == true and i < getNbInhibitoryConnections()) {
-				neuron->addSynapse(neurons_[index]);
-
-				++i;
-		
-			//Je crée Ce connections excitatrices avec des neurones exciateurs
-			} else if (neurons_[index]->isInhibiter() == false and j < getNbExcitatoryConnections()) {
-				
-				neuron->addSynapse(neurons_[index]);
-				++j;
+	//First method connect (for test_twoneurons and google test)
+	if (getNbNeurons() < 50) {
+		// Initialisation de la liste des neurons connectés
+		for (auto n : neurons_) {
+			for (auto neuronConnected : neurons_) {
+				if (n != neuronConnected) {
+					n->addSynapse(neuronConnected);
+				}
 			}
 		}
-	++k;
+
+	} else {
+		unsigned int nbInhibitory = getNbNeurons()/5;
+		unsigned int nbExcitatory = getNbNeurons() - nbInhibitory;
+		
+		for (auto neuron : neurons_) {
+			for (unsigned int i(0); i < getNbInhibitoryConnections(); ++i) {
+				unsigned int index(uniform(nbInhibitory));
+				neuron->addSynapse(neurons_[index]);
+			}
+			for (unsigned int j(0); j < getNbExcitatoryConnections(); ++j) {
+				unsigned int index(uniform(nbExcitatory));
+				neuron->addSynapse(neurons_[index+nbInhibitory]);
+			}
+		}
 	}
+	
+/*	} else {
+		//on parcours les neurones receveurs qui doivent recevoir ne*0.1 connections excitatrices
+		//et ni*0.1 connectios inhibitrices
+		for (auto neuron : neurons_) {
+
+			for (unsigned int i(0); i < getNbExcitatoryConnections(); ++i) {
+				//on choisit uniformément un neuron source excitateur
+				unsigned int index(uniform(neuronsExcitatory_.size()));
+				neuron->addSynapse(neuronsExcitatory_[index]);
+			}	
+			for (unsigned int j(0); j < getNbInhibitoryConnections(); ++j) {
+				//on choisit uniformément un neuron source inhibiteur
+				unsigned int index(uniform(neuronsInhibitory_.size()));
+				neuron->addSynapse(neuronsInhibitory_[index]);
+			}
+		}
+*/											
 }
 //======================================================================
 //Poisson distribution of randomly external spike
@@ -106,17 +147,17 @@ unsigned int Network::poisson()
 {
 	random_device device;
 	default_random_engine generator(device());
-	poisson_distribution<unsigned int> distribution(getNbExcitatoryConnections()*getExternalFrequency());
+	poisson_distribution<unsigned int> distribution(dt*Vext);
 	
 	return distribution(generator);
 }
 //----------------------------------------------------------------------
 //To generate the connection we need uniformly distributed random numbers
-unsigned int Network::uniform()
-{
+unsigned int Network::uniform(unsigned int size)
+{	//static
 	random_device device;
 	default_random_engine generator(device());
-	uniform_int_distribution<unsigned int> distribution(0, neurons_.size()-1);
+	uniform_int_distribution<unsigned int> distribution(0, size-1);
 	
 	return distribution(generator);
 }
@@ -124,58 +165,57 @@ unsigned int Network::uniform()
 //update du network
 void Network::update()
 {
+	unsigned int k(1);
 	while(dt*clock_ < networkStopTime_)	{
+		
 		for (auto neuron : neurons_) {
 			
 			neuron->update();
+						
+			if (getNbNeurons() >= 50) {
 			
-			//randomly distributed external spike from outside network
-			unsigned int backgroundNoise(poisson());
-			cout << "Poisson: " << backgroundNoise << endl;
-			
-			// si le poisson process active les synapses externe	
-			//alors pour chaque synapses externe activées (random) un spike est distribué au neurone
-			for (unsigned int i(0); i < backgroundNoise; ++i) {
-				neuron->setSpikesReceived(neuron->getSpikesReceived() + 1);
-			}
-			
-			//si le neuron spike
-			if (neuron->hasSpike()) {
+				//randomly distributed external spike from outside network
+				unsigned int backgroundNoise(poisson());
 				
-				//on transmet aux neurones connectés le spike à un temps tpre
-				for (auto n : neuron->getSynapses()) {
+				// si le poisson process active les synapses externe	
+				//alors pour chaque synapses externe activées (random) un spike est distribué au neurone
+				neuron->setSpikesReceived(neuron->getSpikesReceived() + backgroundNoise);
+			}		
+
+			//notre neurone est connecté à plusieurs neurones sources		
+			for (auto neuronSource : neuron->getSynapses()) {					
+				
+				//si un neurone source spike, on ajoute un spike
+				if (neuronSource->hasSpike()) {
 					
-					if (neuron->isInhibiter()) {
-						n->setSpikesReceived(n->getSpikesReceived() - g);
-					}
-					else {
-						n->setSpikesReceived(n->getSpikesReceived() + 1);
+					//négatif s'il est inhibiteur
+					if (neuronSource->isInhibiter()) {
+							neuron->setSpikesReceived(neuron->getSpikesReceived() - g);
+					
+					//positif s'il est excitateur
+					} else {
+						neuron->setSpikesReceived(neuron->getSpikesReceived() + 1);
 					}	
 				}
-			}		
+			}	
+			
+			if (neuron->hasSpike()) {
+				++nbSpikesTotal_;
+			}	
 		}
-		
+			
 		for (auto neuron : neurons_) {
 			neuron->fillBuffer();
 		}
+	
+//	cout << "update: " << k << endl;
+//	cout << "nbSpike: " << nbSpikesTotal_ << endl;	
+	spikesTable_.push_back(nbSpikesTotal_);
+	nbSpikesTotal_ = 0;
 		
 	// incrémentation du pas de temps (steptime)
-	clock_ += h;	
+	clock_ += h;
+	++k;	
 	}
 }
 //======================================================================
-/*int k(1);
-for (auto neuron : neurons_) {
-		cout << "neuron" << k << endl;
-		cout << "Uniform: " << index << endl;	
-		cout << "nb neurons: " << getNbNeurons() << " ";
-		cout << "Ce: " << getNbExcitatoryConnections() << " Ci: " << getNbInhibitoryConnections() << endl;
-		cout << "synapses: " << neuron->getSynapses().size() << endl;
-		if (neurons_[index]->isInhibiter() == true) { cout << "inhibiteur" << endl; }
-		if (neurons_[index]->isInhibiter() == false) { cout << "excitatory" << endl; }
-		cout << "nb connections inhibitrices: "<< i << endl;
-		cout << "nb connections excitatrices: "<< j << endl;
-		++k;
-}
-			
-*/

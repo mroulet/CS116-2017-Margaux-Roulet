@@ -18,10 +18,11 @@ const double tau = Resistance * Capacity; 		//!< Tau excitatory
 const double tauRp = 2.0; 						//!< Refractory time period [ms]
 const double Amplitude = 0.1; 					//!< Spike Amplitude received from excitatory neurons
 const double Delay = 1.5; 						//!< Transmission delay [ms]
-const double g = 5.0;							//!< Relative strength of inhibitory synapses
+const double g = 3.0;							//!< Relative strength of inhibitory synapses
 const double ConnectionPercent = 0.1;			//!< Connections pourcentage in the whole network
-const double Vext_Vthr = 2.0;					//!< the external frequency expressed int units of external frequency to reach threshold with no feedback
-
+const double Eta = 2;							//!< Eta function
+const double Vext = Threshold * Eta /(Amplitude*tau); //!< External frequency
+const unsigned int DelayStep = static_cast<unsigned long>(floor(Delay/dt)); //!< Delay in steps
 
 /*! 
  * @class Neuron
@@ -113,7 +114,7 @@ public:
 	 * 
 	 * @return current numbers of spike received from connected neurons.
 	 */
-	unsigned int getSpikesReceived() const;
+	int getSpikesReceived() const;
 	
 	/**
 	 * @brief Set potential.
@@ -157,7 +158,7 @@ public:
 	 * 
 	 * Set current value of number of spikes received from each neuron connected every dt.
 	 */
-	void setSpikesReceived(unsigned int spikes);
+	void setSpikesReceived(int spikes);
 	
 	/**
 	 * @brief Set the external current.
@@ -209,7 +210,6 @@ public:
 	 * Each step time of the simulation, to fill the buffer, we push_back
 	 */
 	void fillBuffer();
-	
 	/**
 	 * @brief Read the spikes received by a connected neuron at time t.
 	 * 
@@ -217,6 +217,10 @@ public:
 	 * @note Each step time of the simulation, to empty the buffer, we read the first value of the buffer and erase it.
 	 */
 	void emptyBuffer();
+
+//	void fillBuffer(unsigned int const& clock);
+//	int getBuffer(unsigned int idx);
+//	void setBuffer(unsigned int idx, int value);
 
 private:
 	/**
@@ -265,9 +269,10 @@ private:
 	unsigned int nbSpikes_;
 	
 	/**
-	 * Number of spikes received from other connected neuron, updated each dt
+	 * Number of spikes received from other connected neuron, updated each dt.
+	 * The neuron receives 1 from excitatory neurons and external neurons and -g from inhibitory neurons.
 	 */
-	unsigned int spikesReceived_;
+	int spikesReceived_;
 	
 	
 	/**
@@ -289,7 +294,7 @@ private:
 	/** 
 	 * Time buffer containing each spike received at each dt
 	 */
-	std::vector<unsigned int> buffer_;
+	std::vector<int> buffer_;
 	
 	/**
 	 * Simulation time state

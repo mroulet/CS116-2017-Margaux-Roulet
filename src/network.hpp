@@ -40,6 +40,12 @@ public:
 	~Network();
 	
 	/**
+	 * @brief Get neurons
+	 * 
+	 */
+	 std::vector<Neuron*> getNeurons() const;
+	
+	/**
 	 * @brief Get the number of neurons inside the network.
 	 */
 	unsigned int getNbNeurons() const;
@@ -58,11 +64,18 @@ public:
 	 
 	double getFrequencyThr();
 	double getExternalFrequency();
-	 
-	unsigned int poisson();
-	unsigned int uniform();
-	 
 	
+	/**
+	 * @brief Poisson distribution of external Spike
+	 * 
+	 * 
+	 */ 
+	unsigned int poisson();
+	
+	/**
+	 * @brief Uniform distribution of connection
+	 */ 
+	unsigned int uniform(unsigned int size);
 	
 	/**
 	 * @brief Define whether the neuron is excitatory or inhibitory.
@@ -91,6 +104,8 @@ public:
 	 * @note The network handles the recording into the time buffer of each neuron.
 	 */
 	void update();
+	
+	std::vector<unsigned int> getSpikesTable() const;
 
 private:
 	/**
@@ -107,7 +122,19 @@ private:
 	 * @brief Table of neurons
 	 */
 	std::vector<Neuron*> neurons_;
+//	std::vector<Neuron*> neuronsExcitatory_;
+//	std::vector<Neuron*> neuronsInhibitory_;
+
+	/**
+	 * @brief Table in which spikes are recorded by dt
+	 */
+	std::vector<unsigned int> spikesTable_;
 	
+	/**
+	 *  @brief number of spikes of all neurons that happen each step time.
+	 */
+	unsigned int nbSpikesTotal_;
+
 	/**
 	 * Global clock of the simulation
 	 */

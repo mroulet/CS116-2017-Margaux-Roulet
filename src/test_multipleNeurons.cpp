@@ -29,33 +29,39 @@ int main()
 
 	network.update();
 
-	unsigned int compteur(1);
 	unsigned int k(1);
 
-		string fileName("../res/potentials.txt");
-		ofstream file(fileName.c_str());
+		string fileName1("../res/spikes.txt");
+		ofstream file1(fileName1.c_str());
+
+		
+		string fileName2("../res/potentials.txt");
+		ofstream file2(fileName2.c_str());
 		
 		// stockage du potentiel membranaire pour chaque pas de temps
-			if (file.fail ()) {
-			cerr << "Error opening file " << fileName << endl;
+			if (file1.fail() or file2.fail()) {
+			cerr << "Error opening file " << fileName1 << endl;
 		
 			} else {
 				
-				while(k < stopTime/dt) {
-				
-					file << k*dt << " ";
-					
+				while(k < stopTime/dt) {				
+					file2 << k*dt << " ";
+
 					for (auto neuron : neurons) {
-						file << neuron->getPotentials()[k-1] << " ";
+						file2 << neuron->getPotentials()[k-1] << " ";
 					}
 					
-					file << endl;
+					file2 << endl;
+				
+					file1 << k*dt << " ";
+					file1 << network.getSpikesTable()[k-1] << endl;
 					++k;
 				}
 			}
 		
 		//fermeture du fichier
-		file.close();	
+		file1.close();	
+		file2.close();	
 
 /*	for (auto neuron : neurons) {
 		//création et ouverture d'un file pour chaque neurone

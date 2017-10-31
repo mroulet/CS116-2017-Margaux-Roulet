@@ -17,13 +17,13 @@ Neuron::Neuron(double stopTime, double iext, double potential)
 	
 	synapses_.clear();
 	
-	//initialisation du buffer on utilise Delay mais sous forme de pas de temps
+/*	//initialisation du buffer on utilise Delay mais sous forme de pas de temps
 	//notre buffer doit avoir un taille initiale avec pour valeur 0 = nb spike receive
 	unsigned int t = static_cast<unsigned long>(floor(Delay/dt));
-	
-	//la taille du buffer initial est 14 (soit 15 cases).
-	//de ce fait, il y aura un délai de 15 cases pour qu'on spike s'y inscrive, soit 1.5 ms
-	for (unsigned int i(0); i <= t-1; ++i) {
+*/	
+	//la taille du buffer initial est 13 (soit 14 cases).
+	//de ce fait, il y aura un délai de 15 cases pour qu'un spike s'y inscrive, soit 1.5 ms
+	for (unsigned int i(0); i <= DelayStep-2; ++i) {
 		buffer_.push_back(0);
 	}
 }	
@@ -71,7 +71,7 @@ bool Neuron::isInhibiter() const
 	return isInhibiter_;
 }
 //----------------------------------------------------------------------
-unsigned int Neuron::getSpikesReceived() const
+int Neuron::getSpikesReceived() const
 {
 	return spikesReceived_;
 }
@@ -97,7 +97,7 @@ void Neuron::setRefractoryTime(double time)
 	refractoryTime_ = time;
 }
 //----------------------------------------------------------------------
-void Neuron::setSpikesReceived(unsigned int spikes)
+void Neuron::setSpikesReceived(int spikes)
 {
 	spikesReceived_ = spikes;
 }
@@ -128,7 +128,7 @@ double Neuron::membraneEq()
 	}	
 }
 //======================================================================
-// Gestion du buffer
+// Gestion du buffer OLD VERION
 void Neuron::fillBuffer()
 {
 	buffer_.push_back(getSpikesReceived());
@@ -141,6 +141,21 @@ void Neuron::emptyBuffer()
 		buffer_.erase(buffer_.begin());
 	}
 }
+/*int Neuron::getBuffer(unsigned int idx) 
+{
+	//invalid operant type -> static cast
+	return buffer_[idx%(DelayStep+1)];
+}
+//----------------------------------------------------------------------
+void Neuron::setBuffer(unsigned int idx, int value)
+{
+	buffer_[idx%(DelayStep+1)] = value;
+}
+//----------------------------------------------------------------------
+void Neuron::fillBuffer(unsigned int const& clock)
+{
+	setBuffer(clock + DelayStep, getBuffer(clock +DelayStep) + getSpikesReceived());
+}*/
 //======================================================================
 //update du potentiel
 void Neuron::update()
@@ -162,7 +177,7 @@ void Neuron::update()
 			if (getRefractoryTime() == 0.0) {
 				
 				//on stock le temps où le spike a lieu lorsque le potentiel atteint la limite
-				spikesTimes_.push_back(dt*time_);
+//				spikesTimes_.push_back(dt*time_);
 				
 				//le neuron spike
 				hasSpike_ = true;
@@ -189,6 +204,7 @@ void Neuron::update()
 	
 		
 		// incrémentation du pas de temps (steptime)
+//		buffer_[0] = 0;
 		emptyBuffer();
 		time_ += h;
 }
