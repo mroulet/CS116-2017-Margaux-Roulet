@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <cassert>
 #include <fstream>
 #include <list>
 #include <math.h>
@@ -15,12 +16,13 @@ const unsigned int h = 1; 						//!< Steptime (will be converted en ms)
 const double Resistance = 20.0; 				//!< Membrane Resistance [Ohm]
 const double Capacity = 1.0; 					//!< Capacity [Farrad]
 const double tau = Resistance * Capacity; 		//!< Tau excitatory
+const double e = exp(-dt/tau);					//!< needed for the membrane equation 
 const double tauRp = 2.0; 						//!< Refractory time period [ms]
 const double Amplitude = 0.1; 					//!< Spike Amplitude received from excitatory neurons
 const double Delay = 1.5; 						//!< Transmission delay [ms]
-const double g = 3.0;							//!< Relative strength of inhibitory synapses
+const double g = 4.5;							//!< Relative strength of inhibitory synapses
 const double ConnectionPercent = 0.1;			//!< Connections pourcentage in the whole network
-const double Eta = 2;							//!< Eta function
+const double Eta = 0.9;							//!< Eta function
 const double Vext = Threshold * Eta /(Amplitude*tau); //!< External frequency
 const unsigned int DelayStep = static_cast<unsigned long>(floor(Delay/dt)); //!< Delay in steps
 
@@ -41,8 +43,8 @@ public:
      * @brief Constructor
      *
      * @param stopTime of the simuation of the neuron
-     * @param iext is the external current
-     * @param membran potential
+     * @param iext is the external current. Default value = 0.0
+     * @param membrane potential. Default value = 0.0
      * 
      * @note Initialisation of the time buffer necessary for the right implemtation of the transmission delay
      */
@@ -174,9 +176,6 @@ public:
 	 */
 	void addSynapse(Neuron* const n);
 	
-
-	
-	//membrane differential equation
 	/**
 	 * @brief Calculate the membrane potential of the Neuron.
 	 * 
@@ -210,96 +209,81 @@ public:
 	 * Each step time of the simulation, to fill the buffer, we push_back
 	 */
 	void fillBuffer();
+//	/**
+//	 * @brief Read the spikes received by a connected neuron at time t.
+//	 * 
+//	 * @note Each step time of the simulation, to empty the buffer, we read the first value of the buffer and erase it.
+//	 */
+//	void emptyBuffer();
+	
 	/**
-	 * @brief Read the spikes received by a connected neuron at time t.
-	 * 
-	 * 
-	 * @note Each step time of the simulation, to empty the buffer, we read the first value of the buffer and erase it.
+	 * @brief Update the buffer index in which you record spikes
 	 */
-	void emptyBuffer();
+	void updateWriteBox();
+	
+	/**
+	 * @brief Update the buffer index in which your read the spikes
+	 */
+	void updateReadBox();
 
 //	void fillBuffer(unsigned int const& clock);
 //	int getBuffer(unsigned int idx);
 //	void setBuffer(unsigned int idx, int value);
 
+
 private:
-	/**
-	 * Start time of the neuron simulation [ms]
-	 */
-	double startTime_;	
+	
+	double startTime_; //!< Start time of the neuron simulation [ms]
+	
+	double stopTime_; //!< End time of the neuron simulation [ms]		
+	
+	std::vector<Neuron*> synapses_; //!< List of connected neurons		
+	
+	double refractoryTime_; //!< Refractory timer
+	
+	std::vector<double> spikesTimes_; //!< Record of times when the neuron spiked
+	
+	double iext_; //!< External Current
+				
+	double potential_; //!< Membrane potential
+	
+	std::vector<double> potentials_; //!< Record of membrane potential at each dt, to create a file
+	
+	unsigned int nbSpikes_; //!< Number of spikes
 	
 	/**
-	 * End time of the neuron simulation [ms]
-	 */
-	double stopTime_;					
-	
-	/**
-	 * List of connected neurons
-	 */
-	std::vector<Neuron*> synapses_; 		
-	
-	/**
-	 * Refractory timer
-	 */
-	double refractoryTime_;			
-	
-	/**
-	 * Record of times when the neuron spiked
-	 */
-	std::vector<double> spikesTimes_;
-	
-	/**
-	 * External Current
-	 */
-	double iext_;	
-	
-	/**
-	 * Membrane potential
-	 */					
-	double potential_;
-	
-	/**
-	 * Record of membrane potential at each dt, to create a file
-	 */
-	std::vector<double> potentials_; 
-	
-	/**
-	 * Number of spikes
-	 */
-	unsigned int nbSpikes_;
-	
-	/**
+	 * @brief Number of spike received from source neuron
+	 * 
 	 * Number of spikes received from other connected neuron, updated each dt.
 	 * The neuron receives 1 from excitatory neurons and external neurons and -g from inhibitory neurons.
 	 */
 	int spikesReceived_;
 	
+	bool isRefractory_; //!< Neuron refractory state
+	
+	bool hasSpike_; //!< Neuron spike state
+	
+	bool isInhibiter_; //!< Neuron type: return true if is inhibiter return false if is excitatory
+	
+	std::vector<int> buffer_; //!< Time buffer containing each spike received at each dt
 	
 	/**
-	 * Neuron refractory state
+	 * @brief Buffer index in which your record file
+	 * 
+	 * Index in which your record spike taking into account the Delay. 
+	 * Is incremented each dt, when index 14 is reached, writeBox is set to 0
 	 */
-	bool isRefractory_;
+	size_t writeBox_;
 	
 	/**
-	 * Neuron spike state
+	 * @brief Buffer index in which your read file
+	 * 
+	 * Index in which your read spike taking into account the Delay. 
+	 * Is incremented each dt, when index 14 is reached, readBox is set to 0
 	 */
-	bool hasSpike_;
+	size_t readBox_;
 	
-	
-	/**
-	 * Neuron type: return true if is inhibiter return false if is excitatory
-	 */
-	bool isInhibiter_;
-	
-	/** 
-	 * Time buffer containing each spike received at each dt
-	 */
-	std::vector<int> buffer_;
-	
-	/**
-	 * Simulation time state
-	 */
-	double time_;
+	double time_; //!< Simulation time state
 	
 };
 

@@ -14,23 +14,21 @@ Neuron::Neuron(double stopTime, double iext, double potential)
 	isInhibiter_ = false;
 	refractoryTime_ = 0.0;
 	spikesReceived_ = 0;
+	nbSpikes_ = 0;
 	
-	synapses_.clear();
-	
-/*	//initialisation du buffer on utilise Delay mais sous forme de pas de temps
-	//notre buffer doit avoir un taille initiale avec pour valeur 0 = nb spike receive
-	unsigned int t = static_cast<unsigned long>(floor(Delay/dt));
-*/	
+	writeBox_ = 14;
+	readBox_ = 0;
+
 	//la taille du buffer initial est 13 (soit 14 cases).
 	//de ce fait, il y aura un délai de 15 cases pour qu'un spike s'y inscrive, soit 1.5 ms
-	for (unsigned int i(0); i <= DelayStep-2; ++i) {
+	for (unsigned int i(0); i < DelayStep ; ++i) {
 		buffer_.push_back(0);
 	}
 }	
 Neuron::~Neuron()
 {}
 //======================================================================
-//getters
+//Getters
 double Neuron::getPotential() const
 {
 	return potential_;
@@ -76,7 +74,7 @@ int Neuron::getSpikesReceived() const
 	return spikesReceived_;
 }
 //======================================================================
-//setters
+//Setters
 void Neuron::setPotential(double potential)
 {
 	potential_ = potential;
@@ -117,19 +115,40 @@ void Neuron::setIsInhibiter(bool type)
 	isInhibiter_ = type;
 }
 //======================================================================
-//membrane equation: calcul de l'évolution temporel du potentiel de la membrane
+//Membrane equation : temporal evolution of the membrane potential
 double Neuron::membraneEq()
 {
-	const double e = exp(-dt/tau);
-	if (buffer_.empty()) {
-		return e*potential_ + iext_*Resistance*(1-e);
-	} else {
-		return e*potential_ + iext_*Resistance*(1-e) + buffer_[0]*Amplitude;
-	}	
+	assert(!buffer_.empty());
+	return e*potential_ + iext_*Resistance*(1-e) + buffer_[readBox_]*Amplitude;	
 }
 //======================================================================
-// Gestion du buffer OLD VERION
+// Gestion du buffer
 void Neuron::fillBuffer()
+{
+	buffer_[writeBox_] = getSpikesReceived();
+	setSpikesReceived(0);
+}
+//----------------------------------------------------------------------
+void Neuron::updateReadBox()
+{			
+	if (readBox_+1 > 14) {
+		readBox_ = 0;
+	
+	} else { ++readBox_;
+	}
+}
+//----------------------------------------------------------------------
+void Neuron::updateWriteBox()
+{
+	if (writeBox_+1 > 14) {
+		writeBox_ = 0;
+	
+	} else { ++writeBox_; 
+	}
+}
+//OLD VERSION OF BUFFER : all slower than the actual one
+//----------------------------------------------------------------------
+/*void Neuron::fillBuffer()
 {
 	buffer_.push_back(getSpikesReceived());
 	setSpikesReceived(0);
@@ -137,11 +156,11 @@ void Neuron::fillBuffer()
 //----------------------------------------------------------------------
 void Neuron::emptyBuffer()
 {
-	if (!buffer_.empty()) {
-		buffer_.erase(buffer_.begin());
-	}
+	assert(!buffer_.empty());
+	buffer_.erase(buffer_.begin());
 }
-/*int Neuron::getBuffer(unsigned int idx) 
+//----------------------------------------------------------------------
+int Neuron::getBuffer(unsigned int idx) 
 {
 	//invalid operant type -> static cast
 	return buffer_[idx%(DelayStep+1)];
@@ -199,13 +218,9 @@ void Neuron::update()
 			setPotential(membraneEq());
 		}
 		
+		updateReadBox();
+
 		//Ex1: inscription des potentiel dans un tableau (pour en faire un fichier) à modifier, créer une méthode print
-		potentials_.push_back(potential_);
-	
-		
-		// incrémentation du pas de temps (steptime)
-//		buffer_[0] = 0;
-		emptyBuffer();
-		time_ += h;
+//		potentials_.push_back(potential_);
 }
 //======================================================================

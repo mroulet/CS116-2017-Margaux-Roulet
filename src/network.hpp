@@ -51,24 +51,62 @@ public:
 	unsigned int getNbNeurons() const;
 	
 	/**
+	 * @brief Matrix of neurons
+	 * 
+	 */
+	std::vector<std::vector< unsigned int> > getIndex() const;
+	
+	/**
 	 * @brief Set the end time of the simulation.
 	 * 
 	 * @param time interval [ms]
 	 */
 	void setNetworkStopTime(double t);
-	 
-	//.......
+
+	/**
+	 * @brief Get the number of excitatory connections
+	 * 
+	 * @return an integer
+	 */
 	unsigned int getNbExcitatoryConnections();
+	
+	/**
+	 * @brief Get th number of inhibitory connections
+	 *
+	 * @return an integer
+	 */
 	unsigned int getNbInhibitoryConnections();
+	
+	/**
+	 * @brief Get the number of external connections
+	 * 
+	 * @return an integer
+	 */
 	unsigned int getNbExternalConnections();
 	 
+	/**
+	 * @brief Get the frequency of threshold
+	 * 
+	 * @return the value of the frequency
+	 */
 	double getFrequencyThr();
+	
+	/**
+	 * @brief Get the external frequency
+	 * 
+	 * @return the value of the external frequency
+	 */ 
 	double getExternalFrequency();
+	
+	/**
+	 * @brief Record the total number of spikes at each dt in the file "spikes2.txt"
+	 */
+	void writeSpikeToFile();
 	
 	/**
 	 * @brief Poisson distribution of external Spike
 	 * 
-	 * 
+	 * @return a random integer that will define the number of external spike receive
 	 */ 
 	unsigned int poisson();
 	
@@ -105,40 +143,53 @@ public:
 	 */
 	void update();
 	
-	std::vector<unsigned int> getSpikesTable() const;
+	//à commenter
+//	std::vector<unsigned int> getSpikesTable() const;
 
 private:
-	/**
-	 * @brief Start time of the simulation
-	 */
-	double networkStartTime_;
-	
-	/**
-	 * @brief End time of the simulation
-	 */
-	double networkStopTime_;
-	
-	/**
-	 * @brief Table of neurons
-	 */
-	std::vector<Neuron*> neurons_;
-//	std::vector<Neuron*> neuronsExcitatory_;
-//	std::vector<Neuron*> neuronsInhibitory_;
 
-	/**
-	 * @brief Table in which spikes are recorded by dt
-	 */
-	std::vector<unsigned int> spikesTable_;
+	double networkStartTime_; //!< Start time of the simulation
+	
+	double networkStopTime_; //!< End time of the simulation
+	
+	std::vector<Neuron*> neurons_; //!< Table of neurons of the network
+
+	unsigned int neuronIndex_; //!< Index of the neuron list
+
+	std::mt19937 generator; //!< Mester Twyster engine for random distribution
+
+	std::poisson_distribution<unsigned int> distributionPoisson; //!< Poisson distribution for external spikes
+	
+	std::vector<unsigned int> spikesTable_; //!< Table in which spikes are recorded by dt
+	
+	unsigned int nbSpikesTotal_; //!< Number of spikes of all neurons that happen each step time.
 	
 	/**
-	 *  @brief number of spikes of all neurons that happen each step time.
+	 * @brief Matrix of index corresponding to neurons. 
+	 * 
+	 * The first vector contains all the neurons of the network.
+	 * The second vector contains all the target of each neurons.
 	 */
-	unsigned int nbSpikesTotal_;
+	std::vector<std::vector< unsigned int> > index_;
 
+	double clock_; //!< Global clock of the simulation
+	
 	/**
-	 * Global clock of the simulation
+	 * @brief File for gnuplot graph
+	 * 
+	 * Record of the total number of spikes at each dt
+	 * Gnuplot graph: xrange: time in ms / yrange: number of spikes
 	 */
-	double clock_;
+	std::ofstream* spikesFile_;
+	
+	/**
+	 * @brief File for Jupyter graphs
+	 * 
+	 * Record of the each neuron index that spikes and its corresponding time spike
+	 * First jupyter graph:  xrange: time in ms / yrange: index of the first 50 neurons
+	 * Second jupyter graph: xrange: time in ms / yrange: spikes count
+	 */
+	std::ofstream* spikesIndexFile_;
 };
 
 #endif

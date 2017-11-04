@@ -21,7 +21,7 @@ TEST (NeuronTest2, SpikeArrivalTime) {
 
 	double stopTime(0.0);
 	double time(92.4);
-	stopTime = time + Delay - 0.1;
+	stopTime = time + Delay -0.1;
 	
 	Network network(stopTime, neurons);
 	
@@ -50,6 +50,7 @@ TEST (NeuronTest3, PositiveInput) {
 		neuron.update();
 		++i;
 	}
+	
 	
 	EXPECT_EQ(0,neuron.getNbSpikes());
 	EXPECT_GT(1E-3, std::fabs(19.999 - neuron.getPotential()));
@@ -145,6 +146,8 @@ TEST (TwoNeuronsTest2, ExcitatoryConnection_Delay) {
 	
 	Network network(stopTime, neurons);
 	
+	
+	
 	network.update();
 
 	//just before neuron2 spike
@@ -156,7 +159,7 @@ TEST (TwoNeuronsTest2, ExcitatoryConnection_Delay) {
 
 }
 
-TEST (NetworkTest1, neuronsExcitatoryInhibitory) {
+TEST (NetworkTest1, typeDefinition) {
 	
 	std::vector<Neuron*> neurons;
 	
@@ -165,14 +168,12 @@ TEST (NetworkTest1, neuronsExcitatoryInhibitory) {
 		Neuron* n = new Neuron(1);
 		neurons.push_back(n);
 	}
-	
 	Network network(1, neurons);
-	
 	unsigned int nbInhibitory(0);
 	unsigned int nbExcitatory(0);
-	
+
 	for (auto neuron : network.getNeurons()) {
-		
+
 		if (neuron->isInhibiter()) {
 			++nbInhibitory;
 		} else { ++nbExcitatory; }
@@ -197,7 +198,91 @@ TEST (NetworkTest2, connections) {
 	EXPECT_EQ(20, network.getNbInhibitoryConnections());
 	EXPECT_EQ(80, network.getNbExcitatoryConnections());
 }	
+/*
+TEST (optimisation, test1) {
 
+	std::vector<Neuron*> neurons;
+	
+	// The network is composed of 100 neurons
+	for (unsigned int i(0); i < 12500; ++i) {
+		Neuron* n = new Neuron(1);
+		neurons.push_back(n);
+	}
+	
+	Network network(100, neurons);
+	std::cout << "nbNeurons: " << network.getNbNeurons() << std::endl;
+
+	unsigned int k(0);
+	while(k < 100)	{
+		//cout << "update: " << k << endl;
+///		for (size_t i(0); i < index_.size(); ++i) {
+		for (auto neuron : network.getNeurons()) {
+			
+///			neuron[i]->update();			
+			neuron->update();			
+						
+			if (network.getNbNeurons() >= 50) {
+			
+				//randomly distributed external spike from outside network
+				unsigned int backgroundNoise(network.poisson());
+				
+				// si le poisson process active les synapses externe	
+				//alors pour chaque synapses externe activées (random) un spike est distribué au neurone
+///				neuron[i]->setSpikesReceived(index_[i]->getSpikesReceived() + backgroundNoise);
+				neuron->setSpikesReceived(neuron->getSpikesReceived() + backgroundNoise);
+			}		
+			
+			//notre neurone est connecté à plusieurs neurones sources	
+///			for (auto neuronSource : index_[i])	{
+			for (auto neuronSource : neuron->getSynapses()) {					
+				
+				//si un neurone source spike, on ajoute un spike à notre neuron:
+				if (neuronSource->hasSpike()) {
+					
+					//négatif si le neurone source est inhibiteur
+					if (neuronSource->isInhibiter()) {
+///						neuron[i]->setSpikesReceived(neuron[i]->getSpikesReceived() - g);
+						neuron->setSpikesReceived(neuron->getSpikesReceived() - g);
+					
+					//positif si le neurone source est excitateur
+					} else {
+///						neuron[i]->setSpikesReceived(neuron[i]->getSpikesReceived() + 1);
+						neuron->setSpikesReceived(neuron->getSpikesReceived() + 1);
+					}	
+				}
+			}	
+///			if (neuron[i]->hasSpike()) {
+			if (neuron->hasSpike()) {
+//				++netwok.getnbSpnbSpikesTotal_;
+			}	
+			
+///			neuron->fillBuffer();
+
+		} 
+			
+		for (auto neuron : network.getNeurons()) {
+			neuron->fillBuffer();
+		}
+	
+//	cout << "update: " << k << endl;
+//	cout << "nbSpike: " << nbSpikesTotal_ << endl;	
+//	spikesTable_.push_back(nbSpikesTotal_);
+/// writeSpikeToFile(nbSpikesTotal_);
+	*spikesFile_ << k*dt << " ";
+	*spikesFile_ << nbSpikesTotal_ << endl;
+	nbSpikesTotal_ = 0;
+		
+	// incrémentation du pas de temps (steptime)
+	clock_ += h;	
+	++k; //cout incrémenteur
+	
+	}
+		++k;
+			}
+		EXPECT_EQ(1, 1);
+	
+}
+*/
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
