@@ -26,18 +26,8 @@ int main()
 	}
 
 	Network network(stopTime, neurons);
-	cout << "update: " << endl;
-	network.update();
-	cout << "done." << endl;
 
-/*	for (auto neuron : neurons) {		
-		cout << "Display of times when spikes occur: " << endl;
-		for (auto spikes : neuron->getSpikesTimes()) {
-			cout << spikes << " ";
-		}
-		cout << endl;
-	}
-*/			
+	network.update();		
 			
 	return 0;
 }

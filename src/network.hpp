@@ -49,19 +49,6 @@ public:
 	 * @brief Get the number of neurons inside the network.
 	 */
 	unsigned int getNbNeurons() const;
-	
-	/**
-	 * @brief Matrix of neurons
-	 * 
-	 */
-	std::vector<std::vector< unsigned int> > getIndex() const;
-	
-	/**
-	 * @brief Set the end time of the simulation.
-	 * 
-	 * @param time interval [ms]
-	 */
-	void setNetworkStopTime(double t);
 
 	/**
 	 * @brief Get the number of excitatory connections
@@ -83,20 +70,11 @@ public:
 	 * @return an integer
 	 */
 	unsigned int getNbExternalConnections();
-	 
-	/**
-	 * @brief Get the frequency of threshold
-	 * 
-	 * @return the value of the frequency
-	 */
-	double getFrequencyThr();
 	
 	/**
-	 * @brief Get the external frequency
-	 * 
-	 * @return the value of the external frequency
-	 */ 
-	double getExternalFrequency();
+	 * @brief Get the readBox index (needed for the gtest)
+	 */
+	unsigned int getReadBox() const;
 	
 	/**
 	 * @brief Record the total number of spikes at each dt in the file "spikes2.txt"
@@ -112,6 +90,11 @@ public:
 	
 	/**
 	 * @brief Uniform distribution of connection
+	 * 
+	 * We pick randomly neurons within the inhibitory list and the excitatory list to create 
+	 * the right number of connections.
+	 * 
+	 * @param The number of either inhibitory neurons or exciatory neurons
 	 */ 
 	unsigned int uniform(unsigned int size);
 	
@@ -120,6 +103,19 @@ public:
 	 * 
 	 * There are Ne excitatory neurons and Ni inhibitory neurons integrate and fire neurons
 	 */
+	 
+	/** 
+	 * @brief Increment readBox and writeBox, the index in which spikes are respectively read and wrote.
+	 * 
+	 */
+	void updateBufferIndex();
+	 
+	/**
+	 * @brief Define wether each neuron of the list is inhibitory or excitatory
+	 * 
+	 * There are 20% Neurons that are inhibitory and 80% excitatory. We take the first 20% neurons of the list and initialize them inhibitory.
+	 * 
+	 */ 
 	void defineTypeNeuron();
 	
 	/**
@@ -142,9 +138,6 @@ public:
 	 * @note The network handles the recording into the time buffer of each neuron.
 	 */
 	void update();
-	
-	//à commenter
-//	std::vector<unsigned int> getSpikesTable() const;
 
 private:
 
@@ -154,21 +147,17 @@ private:
 	
 	std::vector<Neuron*> neurons_; //!< Table of neurons of the network
 
-	unsigned int neuronIndex_; //!< Index of the neuron list
-
 	std::mt19937 generator; //!< Mester Twyster engine for random distribution
 
 	std::poisson_distribution<unsigned int> distributionPoisson; //!< Poisson distribution for external spikes
-	
-	std::vector<unsigned int> spikesTable_; //!< Table in which spikes are recorded by dt
 	
 	unsigned int nbSpikesTotal_; //!< Number of spikes of all neurons that happen each step time.
 	
 	/**
 	 * @brief Matrix of index corresponding to neurons. 
 	 * 
-	 * The first vector contains all the neurons of the network.
-	 * The second vector contains all the target of each neurons.
+	 * The first vector contains all the source neurons of the network.
+	 * The second vector contains all the target of each source neuron.
 	 */
 	std::vector<std::vector< unsigned int> > index_;
 
@@ -190,6 +179,23 @@ private:
 	 * Second jupyter graph: xrange: time in ms / yrange: spikes count
 	 */
 	std::ofstream* spikesIndexFile_;
+	
+	/**
+	 * @brief Buffer index in which your record file
+	 * 
+	 * Index in which your record spike taking into account the Delay. 
+	 * Is incremented each dt, when index 14 is reached, writeBox is set to 0
+	 */
+	unsigned int writeBox_;
+	
+	/**
+	 * @brief Buffer index in which your read file
+	 * 
+	 * Index in which your read spike taking into account the Delay. 
+	 * Is incremented each dt, when index 14 is reached, readBox is set to 0
+	 */
+	unsigned int readBox_;
+	
 };
 
 #endif
